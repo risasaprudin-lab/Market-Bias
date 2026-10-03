@@ -1,0 +1,7 @@
+{
+  "name": "GogoCurrency & Flow Monitor",
+  "description": "Multi-asset currency strength and market flow momentum terminal for Forex, Crypto, Commodities, and Indices.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

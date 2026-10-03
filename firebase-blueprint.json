@@ -1,0 +1,204 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile data linked to authentication ID",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User public display name",
+          "maxLength": 100
+        },
+        "email": {
+          "type": "string",
+          "description": "User email address",
+          "maxLength": 150
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "User avatar image URL",
+          "maxLength": 500
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp ISO string of creation"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp ISO string of last update"
+        }
+      },
+      "required": ["userId", "email"]
+    },
+    "UserSettings": {
+      "title": "UserSettings",
+      "description": "Custom configuration including Cloudflare Worker URL, favorite pairs, and alert thresholds",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID"
+        },
+        "workerUrl": {
+          "type": "string",
+          "description": "Custom Cloudflare Worker URL for Flow Monitor",
+          "maxLength": 300
+        },
+        "apiKey": {
+          "type": "string",
+          "description": "Optional API Key for webhook access",
+          "maxLength": 128
+        },
+        "selectedTimeframe": {
+          "type": "string",
+          "description": "Active analysis timeframe (e.g. 5, 15, 60)",
+          "maxLength": 10
+        },
+        "theme": {
+          "type": "string",
+          "description": "UI Theme preference",
+          "enum": ["dark", "light", "system"]
+        },
+        "favoritePairs": {
+          "type": "array",
+          "description": "List of pinned favorite pairs"
+        },
+        "streakThreshold": {
+          "type": "number",
+          "description": "Consecutive bars required for streak alert"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Last update ISO string"
+        }
+      },
+      "required": ["userId"]
+    },
+    "JournalEntry": {
+      "title": "JournalEntry",
+      "description": "User trade setup journal and signal snapshot note",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique note entry identifier"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner Auth UID"
+        },
+        "pair": {
+          "type": "string",
+          "description": "Asset pair name",
+          "maxLength": 30
+        },
+        "category": {
+          "type": "string",
+          "description": "Asset category (crypto, metals, inst, forex)",
+          "enum": ["crypto", "metals", "inst", "forex"]
+        },
+        "dir": {
+          "type": "string",
+          "description": "Momentum direction",
+          "enum": ["LONG", "SHORT", "NEUTRAL"]
+        },
+        "roc": {
+          "type": "number",
+          "description": "Rate of change percentage at time of capture"
+        },
+        "price": {
+          "type": "number",
+          "description": "Asset price at time of capture"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Trader observations or notes",
+          "maxLength": 1000
+        },
+        "timestamp": {
+          "type": "number",
+          "description": "Unix millisecond timestamp"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation ISO timestamp"
+        }
+      },
+      "required": ["id", "userId", "pair", "category", "dir", "timestamp"]
+    },
+    "StreakAlert": {
+      "title": "StreakAlert",
+      "description": "Logged momentum streak alert item",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Alert unique id"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Target user ID"
+        },
+        "pair": {
+          "type": "string",
+          "description": "Asset symbol",
+          "maxLength": 30
+        },
+        "category": {
+          "type": "string",
+          "description": "Asset category",
+          "enum": ["crypto", "metals", "inst", "forex"]
+        },
+        "dir": {
+          "type": "string",
+          "description": "Momentum direction",
+          "enum": ["LONG", "SHORT"]
+        },
+        "streakCount": {
+          "type": "number",
+          "description": "Consecutive bars in top 5"
+        },
+        "roc": {
+          "type": "number",
+          "description": "Rate of change percentage"
+        },
+        "timeString": {
+          "type": "string",
+          "description": "Time string formatted"
+        },
+        "timestamp": {
+          "type": "number",
+          "description": "Timestamp in milliseconds"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation timestamp"
+        }
+      },
+      "required": ["id", "userId", "pair", "category", "dir", "streakCount", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/user_profiles/{userId}": {
+      "schema": "#/entities/UserProfile",
+      "description": "User profile records restricted to document owner"
+    },
+    "/user_settings/{userId}": {
+      "schema": "#/entities/UserSettings",
+      "description": "User specific app configuration and worker preferences"
+    },
+    "/users/{userId}/journal/{entryId}": {
+      "schema": "#/entities/JournalEntry",
+      "description": "Private trading journal entries per user"
+    },
+    "/users/{userId}/alerts/{alertId}": {
+      "schema": "#/entities/StreakAlert",
+      "description": "Private streak alert notifications for each user"
+    }
+  }
+}

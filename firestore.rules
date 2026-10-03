@@ -1,0 +1,95 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll(['userId', 'email'])
+        && data.userId == userId
+        && data.email is string
+        && data.email.size() <= 150
+        && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 100))
+        && (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 500));
+    }
+
+    function isValidUserSettings(data, userId) {
+      return data.keys().hasAll(['userId'])
+        && data.userId == userId
+        && (!('workerUrl' in data) || (data.workerUrl is string && data.workerUrl.size() <= 300))
+        && (!('apiKey' in data) || (data.apiKey is string && data.apiKey.size() <= 128))
+        && (!('selectedTimeframe' in data) || (data.selectedTimeframe is string && data.selectedTimeframe.size() <= 10))
+        && (!('streakThreshold' in data) || (data.streakThreshold is number && data.streakThreshold >= 1 && data.streakThreshold <= 60))
+        && (!('favoritePairs' in data) || (data.favoritePairs is list && data.favoritePairs.size() <= 30));
+    }
+
+    function isValidJournalEntry(data, userId) {
+      return data.keys().hasAll(['id', 'userId', 'pair', 'category', 'dir', 'timestamp'])
+        && data.userId == userId
+        && data.pair is string && data.pair.size() <= 30
+        && data.category in ['crypto', 'metals', 'inst', 'forex']
+        && data.dir in ['LONG', 'SHORT', 'NEUTRAL']
+        && data.timestamp is number
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 1000));
+    }
+
+    function isValidStreakAlert(data, userId) {
+      return data.keys().hasAll(['id', 'userId', 'pair', 'category', 'dir', 'streakCount', 'timestamp'])
+        && data.userId == userId
+        && data.pair is string && data.pair.size() <= 30
+        && data.category in ['crypto', 'metals', 'inst', 'forex']
+        && data.dir in ['LONG', 'SHORT']
+        && data.streakCount is number && data.streakCount >= 1
+        && data.timestamp is number;
+    }
+
+    // User profile documents
+    match /user_profiles/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUserProfile(request.resource.data, userId);
+      allow update: if isOwner(userId) && isValidId(userId) && isValidUserProfile(request.resource.data, userId);
+      allow delete: if isOwner(userId) && isValidId(userId);
+    }
+
+    // User settings documents
+    match /user_settings/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUserSettings(request.resource.data, userId);
+      allow update: if isOwner(userId) && isValidId(userId) && isValidUserSettings(request.resource.data, userId);
+      allow delete: if isOwner(userId) && isValidId(userId);
+    }
+
+    // Private subcollections under /users/{userId}
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+
+      match /journal/{entryId} {
+        allow get, list: if isOwner(userId) && isValidId(userId);
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(entryId) && isValidJournalEntry(request.resource.data, userId);
+        allow update: if isOwner(userId) && isValidId(userId) && isValidId(entryId) && isValidJournalEntry(request.resource.data, userId);
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(entryId);
+      }
+
+      match /alerts/{alertId} {
+        allow get, list: if isOwner(userId) && isValidId(userId);
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(alertId) && isValidStreakAlert(request.resource.data, userId);
+        allow update: if isOwner(userId) && isValidId(userId) && isValidId(alertId) && isValidStreakAlert(request.resource.data, userId);
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(alertId);
+      }
+    }
+  }
+}
